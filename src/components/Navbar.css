@@ -61,6 +61,33 @@
   background: rgba(13, 110, 253, 0.1);
 }
 
+.admin-link {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
+.admin-link:hover {
+  color: #dc3545 !important;
+  opacity: 0.8;
+}
+
+.admin-link.active {
+  color: #dc3545 !important;
+  font-weight: 600;
+}
+
+.user-link {
+  color: #198754 !important;
+}
+
+.logout-link {
+  color: #6c757d !important;
+}
+
+.logout-link:hover {
+  color: #dc3545 !important;
+}
+
 .navbar-toggler:focus {
   box-shadow: none;
   outline: none;
@@ -88,6 +115,10 @@
   .nav-link:hover,
   .nav-link.active {
     background: rgba(13, 110, 253, 0.1);
+  }
+
+  .nav-item {
+    margin: 0.5rem 0;
   }
 }
 

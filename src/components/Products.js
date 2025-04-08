@@ -1,91 +1,90 @@
-import React, { useEffect } from 'react';
+import React, { useState, useEffect } from 'react';
+import { productAPI } from '../services/api';
+import { useNavigate } from 'react-router-dom';
+import { toast } from 'react-toastify';
+import 'react-toastify/dist/ReactToastify.css';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 const Products = () => {
+  const [products, setProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState(null);
+  const navigate = useNavigate();
+
   useEffect(() => {
-    AOS.init({
-      duration: 1000,
-      once: true,
-      offset: 100
-    });
+    AOS.init();
+    fetchProducts();
   }, []);
 
-  // Sample product data
-  const products = [
-    {
-      id: 1,
-      name: 'Wireless Headphones',
-      price: 7999,
-      image: 'https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'High-quality wireless headphones with noise cancellation.',
-      category: 'Audio'
-    },
-    {
-      id: 2,
-      name: 'Smart Watch',
-      price: 15999,
-      image: 'https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Feature-rich smartwatch with health tracking.',
-      category: 'Wearables'
-    },
-    {
-      id: 3,
-      name: 'Ultra Slim Laptop',
-      price: 79999,
-      image: 'https://images.unsplash.com/photo-1517336714731-489689fd1ca8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Powerful laptop for work and entertainment.',
-      category: 'Computers'
-    },
-    {
-      id: 4,
-      name: 'Smartphone Pro',
-      price: 55999,
-      image: 'https://images.unsplash.com/photo-1511707171634-5f897ff02aa9?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Latest smartphone with advanced camera features.',
-      category: 'Mobile'
-    },
-    {
-      id: 5,
-      name: 'Tablet Pro',
-      price: 35999,
-      image: 'https://images.unsplash.com/photo-1544244015-0df4b3ffc6b0?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Versatile tablet for productivity and entertainment.',
-      category: 'Tablets'
-    },
-    {
-      id: 6,
-      name: 'Gaming Console',
-      price: 39999,
-      image: 'https://images.unsplash.com/photo-1486401899868-0e435ed85128?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Next-gen gaming console for immersive gaming experience.',
-      category: 'Gaming'
-    },
-    {
-      id: 7,
-      name: 'Wireless Earbuds',
-      price: 11999,
-      image: 'https://images.unsplash.com/photo-1572569511254-d8f925fe2cbb?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'True wireless earbuds with premium sound quality.',
-      category: 'Audio'
-    },
-    {
-      id: 8,
-      name: 'Smart Home Hub',
-      price: 23999,
-      image: 'https://images.unsplash.com/photo-1558089687-f282ffcbc126?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Control your smart home with voice commands.',
-      category: 'Smart Home'
-    },
-    {
-      id: 9,
-      name: '4K Monitor',
-      price: 31999,
-      image: 'https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80',
-      description: 'Ultra-wide 4K monitor for immersive viewing experience.',
-      category: 'Displays'
+  const fetchProducts = async () => {
+    try {
+      console.log('Fetching products...');
+      const response = await productAPI.getAll();
+      console.log('API Response:', response);
+      
+      if (response?.data?.data && Array.isArray(response.data.data)) {
+        setProducts(response.data.data);
+        console.log('Products loaded:', response.data.data);
+      } else {
+        console.error('Invalid products data:', response?.data);
+        setProducts([]);
+        setError('No products available');
+        toast.error('Error: No products available');
+      }
+    } catch (error) {
+      console.error('Error fetching products:', error);
+      console.error('Error details:', {
+        message: error.message,
+        response: error.response,
+        status: error.response?.status
+      });
+      setProducts([]);
+      setError(error.message);
+      toast.error(`Error loading products: ${error.message}`);
+    } finally {
+      setLoading(false);
     }
-  ];
+  };
+
+  const addToCart = (product) => {
+    const cart = JSON.parse(localStorage.getItem('cart')) || [];
+    const existingItem = cart.find(item => item.product._id === product._id);
+
+    if (existingItem) {
+      existingItem.quantity += 1;
+    } else {
+      cart.push({ product, quantity: 1 });
+    }
+
+    localStorage.setItem('cart', JSON.stringify(cart));
+    toast.success('Product added to cart');
+  };
+
+  if (loading) {
+    return <div className="text-center mt-5">Loading products...</div>;
+  }
+
+  if (error) {
+    return (
+      <div className="container mt-5">
+        <div className="alert alert-danger text-center" role="alert">
+          {error}
+        </div>
+      </div>
+    );
+  }
+
+  if (!products.length) {
+    return (
+      <div className="container mt-5">
+        <div className="text-center">
+          <h2>No Products Available</h2>
+          <p>Check back later for new products!</p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="container mt-5">
@@ -93,7 +92,7 @@ const Products = () => {
       <div className="row">
         {products.map((product, index) => (
           <div 
-            key={product.id} 
+            key={product._id} 
             className="col-md-4 mb-4" 
             data-aos="fade-up" 
             data-aos-delay={index * 100}
@@ -104,6 +103,10 @@ const Products = () => {
                   src={product.image} 
                   className="card-img-top product-image" 
                   alt={product.name}
+                  style={{ height: '200px', objectFit: 'cover' }}
+                  onError={(e) => {
+                    e.target.src = 'https://via.placeholder.com/200x200?text=No+Image';
+                  }}
                 />
                 <span className="badge bg-primary position-absolute top-0 end-0 m-2">
                   {product.category}
@@ -113,9 +116,12 @@ const Products = () => {
                 <h5 className="card-title">{product.name}</h5>
                 <p className="card-text">{product.description}</p>
                 <p className="card-text">
-                  <strong className="text-primary">₹{product.price.toLocaleString('en-IN')}</strong>
+                  <strong className="text-primary">₹{product.price?.toLocaleString('en-IN') || 0}</strong>
                 </p>
-                <button className="btn btn-primary w-100">
+                <button 
+                  className="btn btn-primary w-100"
+                  onClick={() => addToCart(product)}
+                >
                   <i className="fas fa-shopping-cart me-2"></i>
                   Add to Cart
                 </button>
@@ -124,35 +130,8 @@ const Products = () => {
           </div>
         ))}
       </div>
-
-      <style jsx>{`
-        .product-image {
-          transition: transform 0.3s ease;
-        }
-
-        .card:hover .product-image {
-          transform: scale(1.05);
-        }
-
-        .card {
-          transition: transform 0.3s ease, box-shadow 0.3s ease;
-        }
-
-        .card:hover {
-          transform: translateY(-5px);
-          box-shadow: 0 10px 20px rgba(0,0,0,0.1);
-        }
-
-        .badge {
-          transition: transform 0.3s ease;
-        }
-
-        .badge:hover {
-          transform: translateY(-5px);
-        }
-      `}</style>
     </div>
   );
 };
 
-export default Products; 
+export default Products;

@@ -1,9 +1,16 @@
-import React, { useEffect } from 'react';
+import React, { useEffect, useContext, useState } from 'react';
 import { Link } from 'react-router-dom';
+import { UserContext } from '../App';
+import { toast } from 'react-toastify';
+import { productAPI } from '../services/api';
 import AOS from 'aos';
 import 'aos/dist/aos.css';
 
 const Home = () => {
+  const { user } = useContext(UserContext);
+  const [featuredProducts, setFeaturedProducts] = useState([]);
+  const [loading, setLoading] = useState(true);
+
   useEffect(() => {
     AOS.init({
       duration: 1000,
@@ -11,7 +18,41 @@ const Home = () => {
       offset: 100,
       easing: 'ease-out-cubic'
     });
+    fetchFeaturedProducts();
   }, []);
+
+  const fetchFeaturedProducts = async () => {
+    try {
+      const response = await productAPI.getAll();
+      // Get first 3 products as featured
+      const products = response.data.data.slice(0, 3);
+      setFeaturedProducts(products);
+    } catch (error) {
+      console.error('Error fetching featured products:', error);
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  const addToCart = (product) => {
+    try {
+      const cart = JSON.parse(localStorage.getItem('cart')) || [];
+      const existingItem = cart.find(item => item.product._id === product._id);
+
+      if (existingItem) {
+        existingItem.quantity += 1;
+        toast.info(`Increased ${product.name} quantity in cart`);
+      } else {
+        cart.push({ product, quantity: 1 });
+        toast.success(`Added ${product.name} to cart`);
+      }
+
+      localStorage.setItem('cart', JSON.stringify(cart));
+    } catch (error) {
+      console.error('Error adding to cart:', error);
+      toast.error('Failed to add item to cart');
+    }
+  };
 
   return (
     <div className="home-container">
@@ -20,14 +61,21 @@ const Home = () => {
         <div className="container">
           <div className="row align-items-center min-vh-100">
             <div className="col-md-6" data-aos="fade-right">
-              <h1 className="display-1 fw-bold mb-4 hero-title">
-                Welcome to TechTrendz
-              </h1>
+              {user ? (
+                <div className="welcome-back mb-4">
+                  <h2 className="text-primary">Welcome back, {user.name}!</h2>
+                  <p className="lead">Ready to continue your tech journey?</p>
+                </div>
+              ) : (
+                <h1 className="display-1 fw-bold mb-4 hero-title">
+                  Welcome to TechTrendz
+                </h1>
+              )}
               <p className="lead mb-4 hero-subtitle">
                 Discover the latest in technology with our curated collection of premium gadgets and accessories.
               </p>
               <Link to="/products" className="btn btn-primary btn-lg hero-cta">
-                Shop Now
+                {user ? 'Continue Shopping' : 'Shop Now'}
               </Link>
             </div>
             <div className="col-md-6" data-aos="fade-left">
@@ -77,70 +125,56 @@ const Home = () => {
       <section className="products-section py-5">
         <div className="container">
           <h2 className="text-center mb-5 section-title" data-aos="fade-up">Featured Products</h2>
-          <div className="row">
-            <div className="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="100">
-              <div className="product-card">
-                <div className="product-image-wrapper">
-                  <img 
-                    src="https://images.unsplash.com/photo-1505740420928-5e560c06d30e?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                    className="product-image" 
-                    alt="Wireless Headphones" 
-                  />
-                  <div className="product-overlay">
-                    <button className="btn btn-light btn-sm">Quick View</button>
-                    <button className="btn btn-light btn-sm">Add to Wishlist</button>
-                  </div>
-                </div>
-                <div className="product-info">
-                  <h5 className="product-title">Wireless Headphones</h5>
-                  <p className="product-description">High-quality wireless headphones with noise cancellation.</p>
-                  <p className="product-price">₹7,999</p>
-                  <button className="btn btn-primary w-100">Add to Cart</button>
-                </div>
+          {loading ? (
+            <div className="text-center">
+              <div className="spinner-border text-primary" role="status">
+                <span className="visually-hidden">Loading...</span>
               </div>
             </div>
-            <div className="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="200">
-              <div className="product-card">
-                <div className="product-image-wrapper">
-                  <img 
-                    src="https://images.unsplash.com/photo-1523275335684-37898b6baf30?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                    className="product-image" 
-                    alt="Smart Watch" 
-                  />
-                  <div className="product-overlay">
-                    <button className="btn btn-light btn-sm">Quick View</button>
-                    <button className="btn btn-light btn-sm">Add to Wishlist</button>
+          ) : (
+            <div className="row">
+              {featuredProducts.map((product, index) => (
+                <div key={product._id} className="col-md-4 mb-4" data-aos="fade-up" data-aos-delay={index * 100}>
+                  <div className="product-card">
+                    <div className="product-image-wrapper">
+                      <img 
+                        src={product.image} 
+                        className="product-image" 
+                        alt={product.name}
+                        onError={(e) => {
+                          e.target.src = 'https://via.placeholder.com/300x300?text=Product+Image';
+                        }}
+                      />
+                      <div className="product-overlay">
+                        <Link 
+                          to={`/products`} 
+                          className="btn btn-light btn-sm"
+                        >
+                          View Details
+                        </Link>
+                      </div>
+                    </div>
+                    <div className="product-info">
+                      <h5 className="product-title">{product.name}</h5>
+                      <p className="product-description">{product.description}</p>
+                      <p className="product-price">₹{product.price.toLocaleString('en-IN')}</p>
+                      <button 
+                        className="btn btn-primary w-100"
+                        onClick={() => addToCart(product)}
+                      >
+                        <i className="fas fa-shopping-cart me-2"></i>
+                        Add to Cart
+                      </button>
+                    </div>
                   </div>
                 </div>
-                <div className="product-info">
-                  <h5 className="product-title">Smart Watch</h5>
-                  <p className="product-description">Feature-rich smartwatch with health tracking.</p>
-                  <p className="product-price">₹15,999</p>
-                  <button className="btn btn-primary w-100">Add to Cart</button>
-                </div>
-              </div>
+              ))}
             </div>
-            <div className="col-md-4 mb-4" data-aos="fade-up" data-aos-delay="300">
-              <div className="product-card">
-                <div className="product-image-wrapper">
-                  <img 
-                    src="https://images.unsplash.com/photo-1517336714731-489689fd1ca8?ixlib=rb-4.0.3&ixid=M3wxMjA3fDB8MHxwaG90by1wYWdlfHx8fGVufDB8fHx8fA%3D%3D&auto=format&fit=crop&w=1000&q=80" 
-                    className="product-image" 
-                    alt="Ultra Slim Laptop"
-                  />
-                  <div className="product-overlay">
-                    <button className="btn btn-light btn-sm">Quick View</button>
-                    <button className="btn btn-light btn-sm">Add to Wishlist</button>
-                  </div>
-                </div>
-                <div className="product-info">
-                  <h5 className="product-title">Ultra Slim Laptop</h5>
-                  <p className="product-description">Powerful laptop for work and entertainment.</p>
-                  <p className="product-price">₹79,999</p>
-                  <button className="btn btn-primary w-100">Add to Cart</button>
-                </div>
-              </div>
-            </div>
+          )}
+          <div className="text-center mt-4">
+            <Link to="/products" className="btn btn-outline-primary btn-lg">
+              View All Products
+            </Link>
           </div>
         </div>
       </section>
@@ -378,4 +412,4 @@ const Home = () => {
   );
 };
 
-export default Home; 
+export default Home;
